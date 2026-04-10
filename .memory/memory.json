@@ -1,0 +1,33 @@
+{
+  "project": "nbti-static-rebuild",
+  "version": 3,
+  "purpose": "Track architecture, taxonomy, scoring rules, share strategy, and deployment decisions for the NBTI static quiz.",
+  "key_decisions": {
+    "brand": "NBTI",
+    "stack": "vite-vanilla-static",
+    "share_strategy": "screenshot-first-plus-copy-text",
+    "routing": "hash",
+    "storage": "localStorage",
+    "backend": false,
+    "question_count": 31,
+    "dimension_count": 15,
+    "archetype_count": 16,
+    "scoring_model": "option-map-to-15-dimensions-with-deterministic-archetype-selection",
+    "ui_style": "SBTI-aggressive-dark-theme"
+  },
+  "verification": {
+    "unit": "npm test",
+    "e2e": "npm run test:e2e",
+    "build": "npm run build"
+  },
+  "domains": [
+    "product-contract",
+    "content-model",
+    "dimensions",
+    "archetypes",
+    "scoring",
+    "result-layout",
+    "sharing",
+    "deployment"
+  ]
+}
