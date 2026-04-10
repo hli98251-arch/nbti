@@ -5,7 +5,7 @@ export function renderLanding(rootElement, appState) {
     <main class="screen screen--landing">
       <section class="hero-card">
         <div class="landing-character-container">
-          <img src="/assets/archetypes/VENM.png" alt="毒舌人物模型" class="landing-character" />
+          <img src="${import.meta.env.BASE_URL}assets/archetypes/VENM.png" alt="毒舌人物模型" class="landing-character" />
         </div>
         <p class="eyebrow">NBTI / 朋友互测专用</p>
         <h1>SBTI已经过时，<span style="white-space:nowrap">NBTI来了。</span></h1>

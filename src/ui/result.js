@@ -71,7 +71,7 @@ export function renderResultShell(rootElement, appState) {
     <main class="screen screen--result">
       <section class="poster-card" data-testid="result-poster">
         <div class="archetype-character-container">
-          <img src="/assets/archetypes/${result.code}.png" alt="${result.title} 人物模型" class="archetype-character" />
+          <img src="${import.meta.env.BASE_URL}assets/archetypes/${result.code}.png" alt="${result.title} 人物模型" class="archetype-character" />
         </div>
         <p class="eyebrow">NBTI 人格测试</p>
         <span class="result-type-code">${result.code}</span>
