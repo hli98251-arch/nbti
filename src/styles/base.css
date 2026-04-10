@@ -78,8 +78,7 @@ body {
 }
 
 /* Archetype Character Model */
-.landing-character-container,
-.archetype-character-container {
+.landing-character-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -90,12 +89,38 @@ body {
   pointer-events: none;
 }
 
-.landing-character,
+/* Result Character Model Container - Optimized for white-bg images */
+.archetype-character-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 28px;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+  width: 220px;
+  height: 220px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 
+    0 16px 40px rgba(34, 197, 94, 0.15), 
+    inset 0 0 0 1px rgba(34, 197, 94, 0.05),
+    0 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+.landing-character {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
 .archetype-character {
   width: 180px;
   height: 180px;
   object-fit: contain;
-  mix-blend-mode: multiply; /* Removes the white background from JPGs/PNGs against light cards */
+  mix-blend-mode: multiply; /* Blends cleanly with the circular white background */
+  border-radius: 50%; 
 }
 
 @keyframes float-model {
