@@ -1,6 +1,7 @@
 // ============================================================
-// NBTI 计分引擎 v2.0
+// NBTI 计分引擎 v3.0
 // 两阶段人格匹配：MBTI一级分类 + 维度二级微调
+// v3.0 改进：MBTI 模糊带检测 + 性格维度辅助判定 + 置信度优化
 // ============================================================
 
 import { archetypes } from '../content/archetypes.js';
@@ -52,14 +53,49 @@ function scoreAnswers(answers) {
 }
 
 // ============================================================
-// 阶段二：确定 MBTI 类型
+// 阶段二：确定 MBTI 类型（v3.0 增强版）
 // ============================================================
 
-function determineMbtiType(mbtiScores) {
-  const e_or_i = mbtiScores.ei >= 0 ? 'E' : 'I';
-  const s_or_n = mbtiScores.sn >= 0 ? 'N' : 'S';
-  const t_or_f = mbtiScores.tf >= 0 ? 'F' : 'T';
-  const j_or_p = mbtiScores.jp >= 0 ? 'P' : 'J';
+/**
+ * v3.0: 当 MBTI 某维度分数落在 "模糊带"（-2 到 +2）时，
+ * 结合性格维度分数做辅助判断，减少随机翻转。
+ */
+function determineMbtiType(mbtiScores, personalityScores) {
+  const FUZZY_THRESHOLD = 2; // 模糊带阈值
+
+  // E/I 辅助判断：orbit（社交引力）正值偏E，负值偏I
+  let eiScore = mbtiScores.ei;
+  if (Math.abs(eiScore) <= FUZZY_THRESHOLD) {
+    const orbitHint = (personalityScores.orbit ?? 0) * 0.3;
+    eiScore += orbitHint;
+  }
+
+  // S/N 辅助判断：absurdity（荒谬感）正值偏N，chaos也稍偏N
+  let snScore = mbtiScores.sn;
+  if (Math.abs(snScore) <= FUZZY_THRESHOLD) {
+    const absurdityHint = (personalityScores.absurdity ?? 0) * 0.25;
+    snScore += absurdityHint;
+  }
+
+  // T/F 辅助判断：venom（毒舌值）正值偏T
+  let tfScore = mbtiScores.tf;
+  if (Math.abs(tfScore) <= FUZZY_THRESHOLD) {
+    const venomHint = (personalityScores.venom ?? 0) * -0.2; // venom高偏T(负)
+    tfScore += venomHint;
+  }
+
+  // J/P 辅助判断：chaos（整活值）正值偏P，gravity偏J
+  let jpScore = mbtiScores.jp;
+  if (Math.abs(jpScore) <= FUZZY_THRESHOLD) {
+    const chaosHint = (personalityScores.chaos ?? 0) * 0.2;
+    const gravityHint = (personalityScores.gravity ?? 0) * -0.2;
+    jpScore += chaosHint + gravityHint;
+  }
+
+  const e_or_i = eiScore >= 0 ? 'E' : 'I';
+  const s_or_n = snScore >= 0 ? 'N' : 'S';
+  const t_or_f = tfScore >= 0 ? 'F' : 'T';
+  const j_or_p = jpScore >= 0 ? 'P' : 'J';
   return `${e_or_i}${s_or_n}${t_or_f}${j_or_p}`;
 }
 
@@ -152,7 +188,8 @@ export function buildResultFromAnswers(answers) {
   }
 
   const { personalityScores, mbtiScores } = scoreAnswers(answers);
-  const mbtiType = determineMbtiType(mbtiScores);
+  // v3.0: 传入性格分做 MBTI 模糊带辅助判定
+  const mbtiType = determineMbtiType(mbtiScores, personalityScores);
   const selected = selectArchetype(personalityScores, mbtiType);
   const confidence = buildConfidence(selected.top.total, selected.second.total);
 

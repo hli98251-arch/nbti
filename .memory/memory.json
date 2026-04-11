@@ -29,5 +29,8 @@
     "result-layout",
     "sharing",
     "deployment"
+  ],
+  "request": [
+    "after update auto upload the document to github"
   ]
 }

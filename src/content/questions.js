@@ -1,209 +1,260 @@
 // ============================================================
-// NBTI 题库 v2.0 — per-question 维度计分 + 自适应分支
+// NBTI 题库 v3.0 — MBTI 精度大幅提升版
 // ============================================================
-// 设计原则：
-// 1. 每个选项的 scores 独立标注维度权重（正负皆可）
-// 2. MBTI 先导题同时贡献 mbti 维度（ei/sn/tf/jp）和性格维度
-// 3. 自适应分支题用 condition 字段决定是否出现
-// 4. funny 类型题增加趣味性但同样参与计分
-// 5. 每人约走 36 题（MBTI 8 + 核心 20 + 自适应 4 + 搞怪 2 + 哲理 2）
+// 核心改进（v2→v3）：
+// 1. MBTI 先导题：每维度 3 题（主干 + 校准 + 深层），全部四选一
+//    - 四选项覆盖"强倾向A / 弱倾向A / 弱倾向B / 强倾向B"连续光谱
+//    - 不再使用二选一分支（E人特供/I人特供），避免回声效应
+// 2. 核心题隐性 MBTI 计分：20 道核心题中 10+ 道同时贡献 mbti 分数
+//    - 多维交叉校验，单题失误不会翻转 MBTI 结果
+// 3. MBTI 总分范围扩大至约 ±18，0分附近的模糊带更容易被检测
+// 4. 自适应题保持 v2 逻辑不变
 // ============================================================
 
 export const questions = [
   // ================================================================
-  // 第一幕：MBTI 四维先导分支（8题，每人必做）
+  // 第一幕：MBTI 四维先导（12题，每维度3题，每人必做）
   // ================================================================
 
-  // --- E/I 外向/内向 ---
+  // ──────── E/I 外向/内向 ────────
   {
     id: 'mbti_ei_1',
     prompt: '（能量来源）高强度上了一周班/学，终于到了周五晚上，你的第一反应是？',
     category: 'mbti',
     options: [
-      { id: 'a', text: '必须攒个局或者出门嗨一下，不然这周白过了。',
-        nextId: 'mbti_ei_e',
+      { id: 'a', text: '必须攒个局或者出门嗨一下，不然这周白过了！',
         scores: { spark: 1, orbit: 2 },
-        mbti: { ei: 2 } },
-      { id: 'b', text: '谢天谢地，门一锁手机一关，谁也别想找到我。',
-        nextId: 'mbti_ei_i',
-        scores: { filter: 1, orbit: -1 },
-        mbti: { ei: -2 } },
+        mbti: { ei: 3 } },
+      { id: 'b', text: '看看有没有小范围的饭局，人别太多就行。',
+        scores: { orbit: 1 },
+        mbti: { ei: 1 } },
+      { id: 'c', text: '约一两个最好的朋友安静待一会儿就够了。',
+        scores: { filter: 1 },
+        mbti: { ei: -1 } },
+      { id: 'd', text: '谢天谢地，门一锁手机一关，谁也别想找到我。',
+        scores: { filter: 1, bunker: 1 },
+        mbti: { ei: -3 } },
     ]
   },
   {
-    id: 'mbti_ei_e',
-    prompt: '（E人特供）在一个全是熟人的局里，如果气氛突然冷下来了，你会？',
+    id: 'mbti_ei_2',
+    prompt: '（社交恢复）一场四五十人的大聚会结束后，你的状态通常是？',
     category: 'mbti',
     options: [
-      { id: 'a', text: '立刻开始抛梗或者找话题，我受不了一点尴尬。',
-        nextId: 'mbti_sn_1',
+      { id: 'a', text: '意犹未尽，恨不得接着来下半场。',
+        scores: { spark: 1, orbit: 1 },
+        mbti: { ei: 3 } },
+      { id: 'b', text: '累但满足，回家路上还在回味刚才的好时光。',
+        scores: { orbit: 1 },
+        mbti: { ei: 1 } },
+      { id: 'c', text: '松了口气，感觉自己电量快见底了。',
+        scores: { bunker: 1 },
+        mbti: { ei: -1 } },
+      { id: 'd', text: '整个人被掏空，需要独自待至少一整天才能恢复。',
+        scores: { bunker: 1, filter: 1 },
+        mbti: { ei: -3 } },
+    ]
+  },
+  {
+    id: 'mbti_ei_3',
+    prompt: '（交流风格）在一个全是熟人的聚会里，气氛突然冷场了，你会？',
+    category: 'mbti',
+    options: [
+      { id: 'a', text: '立刻抛梗或者找话题，我受不了一秒钟尴尬。',
         scores: { spark: 2, chaos: 1, orbit: 1 },
         mbti: { ei: 2 } },
-      { id: 'b', text: '看旁边平时话最多的人，等他先开口，我再跟进。',
-        nextId: 'mbti_sn_1',
+      { id: 'b', text: '跟旁边的人小声聊个新话题，慢慢带回气氛。',
+        scores: { mask: 1 },
+        mbti: { ei: 1 } },
+      { id: 'c', text: '等话最多的人先开口，我再适时跟进。',
         scores: { mask: 1, gravity: 1 },
-        mbti: { ei: 0 } },
-    ]
-  },
-  {
-    id: 'mbti_ei_i',
-    prompt: '（I人特供）当你不得不参加一个充满陌生人的聚会时，你的内心戏是？',
-    category: 'mbti',
-    options: [
-      { id: 'a', text: '面带微笑充当背景板，随时准备抛出借口开溜。',
-        nextId: 'mbti_sn_1',
-        scores: { mask: 2, filter: 1 },
         mbti: { ei: -1 } },
-      { id: 'b', text: '强行披上社交马甲应付，回家后立刻陷入"社交瘫痪"。',
-        nextId: 'mbti_sn_1',
-        scores: { mask: 1, bunker: 1 },
+      { id: 'd', text: '享受这片刻安静，甚至觉得冷场也挺好。',
+        scores: { filter: 1, bunker: 1 },
         mbti: { ei: -2 } },
     ]
   },
 
-  // --- S/N 实感/直觉 ---
+  // ──────── S/N 实感/直觉 ────────
   {
     id: 'mbti_sn_1',
     prompt: '（认知方式）别人给你画了一个长达10年的"宏伟商业蓝图"，你最先想确认什么？',
     category: 'mbti',
     options: [
       { id: 'a', text: '这东西落地要多少钱？有哪些具体阻碍？',
-        nextId: 'mbti_sn_s',
         scores: { judge: 1, gravity: 1 },
-        mbti: { sn: -2 } },
-      { id: 'b', text: '这个商业模式酷不酷？有没有更有趣的玩法？',
-        nextId: 'mbti_sn_n',
-        scores: { chaos: 1, absurdity: 1 },
-        mbti: { sn: 2 } },
-    ]
-  },
-  {
-    id: 'mbti_sn_s',
-    prompt: '（S人特供）面对整天吹嘘自己眼界多高但连个PPT都做不好的人，你会？',
-    category: 'mbti',
-    options: [
-      { id: 'a', text: '直接问他："所以你要怎么做？步骤列一下？"',
-        nextId: 'mbti_tf_1',
-        scores: { venom: 1, spark: 1, judge: 1 },
-        mbti: { sn: -2 } },
-      { id: 'b', text: '表面点头称是，心里已经把他拉入"不靠谱"黑名单。',
-        nextId: 'mbti_tf_1',
-        scores: { mask: 2, spite: 1 },
+        mbti: { sn: -3 } },
+      { id: 'b', text: '团队现有资源够不够先做一个小版本验证？',
+        scores: { gravity: 1 },
         mbti: { sn: -1 } },
+      { id: 'c', text: '这个方向有没有更大的想象空间？可以再扩展吗？',
+        scores: { chaos: 1 },
+        mbti: { sn: 1 } },
+      { id: 'd', text: '这个商业模式酷不酷？有没有更颠覆性的玩法？',
+        scores: { chaos: 1, absurdity: 1 },
+        mbti: { sn: 3 } },
     ]
   },
   {
-    id: 'mbti_sn_n',
-    prompt: '（N人特供）深夜睡不着时，你脑子里最容易浮出什么画面？',
+    id: 'mbti_sn_2',
+    prompt: '（信息加工）看一部很有深意的电影后，你更在意的是？',
     category: 'mbti',
     options: [
-      { id: 'a', text: '如果丧尸突然爆发，我家里的菜刀能撑几天。',
-        nextId: 'mbti_tf_1',
-        scores: { absurdity: 2, speed: 1 },
-        mbti: { sn: 2 } },
-      { id: 'b', text: '五年前说错的那句话，如果重来一次剧情会怎么发展。',
-        nextId: 'mbti_tf_1',
+      { id: 'a', text: '故事讲了什么，情节是否合理，演员表演功力如何。',
+        scores: { judge: 1 },
+        mbti: { sn: -3 } },
+      { id: 'b', text: '通过细节还原导演想表达的真实意图。',
+        scores: { gravity: 1 },
+        mbti: { sn: -1 } },
+      { id: 'c', text: '这部电影让我联想到了很多其他的事情和可能性。',
+        scores: { absurdity: 1 },
+        mbti: { sn: 1 } },
+      { id: 'd', text: '那些隐喻和象征太有意思了，我能解读出导演自己可能都没想到的含义。',
+        scores: { absurdity: 1, chaos: 1 },
+        mbti: { sn: 3 } },
+    ]
+  },
+  {
+    id: 'mbti_sn_3',
+    prompt: '（深夜胡思）睡不着的时候，你脑子里最常浮出的内容是？',
+    category: 'mbti',
+    options: [
+      { id: 'a', text: '明天要做的具体事项清单，或者今天某件没处理好的事。',
+        scores: { gravity: 1 },
+        mbti: { sn: -2 } },
+      { id: 'b', text: '回想今天跟某人的对话，复盘哪里说得不到位。',
+        scores: { spite: 1 },
+        mbti: { sn: -1 } },
+      { id: 'c', text: '五年前说错的那句话，如果重来一次剧情会怎么发展。',
         scores: { spite: 1, trap: 1 },
         mbti: { sn: 1 } },
+      { id: 'd', text: '如果丧尸突然爆发、如果我会隐身术……各种奇妙假设。',
+        scores: { absurdity: 2, speed: 1 },
+        mbti: { sn: 3 } },
     ]
   },
 
-  // --- T/F 思考/情感 ---
+  // ──────── T/F 思考/情感 ────────
   {
     id: 'mbti_tf_1',
-    prompt: '（决策方式）好朋友哭着找你抱怨工作上的委屈是领导的错，你会？',
+    prompt: '（决策方式）好朋友哭着找你抱怨工作上的委屈（领导确实有错），你会？',
     category: 'mbti',
     options: [
-      { id: 'a', text: '分析局势："别哭了，这事你也有锅，你应该这么办……"',
-        nextId: 'mbti_tf_t',
+      { id: 'a', text: '先分析局势："别哭了，这事你也有锅，你应该这么办……"',
         scores: { venom: 1, judge: 1 },
-        mbti: { tf: -2 } },
-      { id: 'b', text: '提供情绪价值："太惨了！你等我骂死这个傻逼老板！"',
-        nextId: 'mbti_tf_f',
-        scores: { spark: 1, orbit: 1 },
-        mbti: { tf: 2 } },
-    ]
-  },
-  {
-    id: 'mbti_tf_t',
-    prompt: '（T人特供）经常有人说你"说话太直"、"没有温度"，你的真实想法是：',
-    category: 'mbti',
-    options: [
-      { id: 'a', text: '事实就是事实啊，我加个"亲"字就能掩盖你出错的事实吗？',
-        nextId: 'mbti_jp_1',
-        scores: { venom: 2, filter: -1, pride: 1 },
-        mbti: { tf: -2 } },
-      { id: 'b', text: '我只是懒得说客套话，不代表我没有同情心。',
-        nextId: 'mbti_jp_1',
-        scores: { mask: 1, filter: 1 },
+        mbti: { tf: -3 } },
+      { id: 'b', text: '先让TA发泄完，然后理性帮TA梳理下一步行动。',
+        scores: { gravity: 1 },
         mbti: { tf: -1 } },
+      { id: 'c', text: '先安慰情绪，等TA平静了再小心翼翼地说自己的想法。',
+        scores: { mask: 1 },
+        mbti: { tf: 1 } },
+      { id: 'd', text: '提供情绪全额支持："太惨了！你等着我替你骂死这个老板！"',
+        scores: { spark: 1, orbit: 1 },
+        mbti: { tf: 3 } },
     ]
   },
   {
-    id: 'mbti_tf_f',
-    prompt: '（F人特供）你最容易在什么情况下受到内心暴击？',
+    id: 'mbti_tf_2',
+    prompt: '（价值判断）有人用"说话太直""没有温度"来评价你，你的真实反应？',
     category: 'mbti',
     options: [
-      { id: 'a', text: '我的好意被熟人当成理所当然，甚至被冷漠无视。',
-        nextId: 'mbti_jp_1',
-        scores: { spite: 1, pride: 2 },
-        mbti: { tf: 2 } },
-      { id: 'b', text: '对方指责我时，语气稍微重了一点，像是在嫌弃我。',
-        nextId: 'mbti_jp_1',
-        scores: { bunker: 1, pride: 2, leak: 1 },
+      { id: 'a', text: '事实就是事实，加个"亲"字能改变什么？',
+        scores: { venom: 1, pride: 1, filter: -1 },
+        mbti: { tf: -3 } },
+      { id: 'b', text: '我只是效率优先，想快速解决问题而已。',
+        scores: { speed: 1, gravity: 1 },
+        mbti: { tf: -1 } },
+      { id: 'c', text: '说不在意是假的，我会反思自己是不是确实太冲了。',
+        scores: { pride: 1 },
         mbti: { tf: 1 } },
+      { id: 'd', text: '感觉被误解了，我明明很在乎他们的感受。',
+        scores: { pride: 1, leak: 1 },
+        mbti: { tf: 3 } },
+    ]
+  },
+  {
+    id: 'mbti_tf_3',
+    prompt: '（内心破防）你最容易在什么情况下受到"内心暴击"？',
+    category: 'mbti',
+    options: [
+      { id: 'a', text: '我做出了明显正确的决定，却被无理由否定。',
+        scores: { pride: 1, spark: 1 },
+        mbti: { tf: -2 } },
+      { id: 'b', text: '我付出了很多努力，结果却得不到应有的回报。',
+        scores: { spite: 1 },
+        mbti: { tf: -1 } },
+      { id: 'c', text: '我的好意被熟人当成理所当然，甚至被冷漠无视。',
+        scores: { spite: 1, pride: 1 },
+        mbti: { tf: 2 } },
+      { id: 'd', text: '对方对我说话语气稍微重了点，像是在嫌弃我。',
+        scores: { bunker: 1, pride: 1, leak: 1 },
+        mbti: { tf: 3 } },
     ]
   },
 
-  // --- J/P 判断/感知 ---
+  // ──────── J/P 判断/感知 ────────
   {
     id: 'mbti_jp_1',
     prompt: '（生活态度）你的个人空间（比如桌面、房间）一般是什么状态？',
     category: 'mbti',
     options: [
-      { id: 'a', text: '井井有条，就算乱我也严格知道每样东西到底丢在哪。',
-        nextId: 'mbti_jp_j',
+      { id: 'a', text: '井井有条，每样东西严格按分类归位。',
         scores: { gravity: 1, judge: 1 },
-        mbti: { jp: -2 } },
-      { id: 'b', text: '薛定谔的乱。外人不理解，但我能在乱麻里精准找到指甲刀。',
-        nextId: 'mbti_jp_p',
-        scores: { chaos: 1, absurdity: 1 },
-        mbti: { jp: 2 } },
-    ]
-  },
-  {
-    id: 'mbti_jp_j',
-    prompt: '（J人特供）最让你控制欲报警的场面是？',
-    category: 'mbti',
-    options: [
-      { id: 'a', text: '别人跟我约好了时间地点，最后一刻因为极度无语的理由放鸽子。',
-        nextId: 'core_01',
-        scores: { spite: 2, spark: 1 },
-        mbti: { jp: -2 } },
-      { id: 'b', text: '我计划好了一整套流程，结果有人偏要自作主张给我"微调"乱掉。',
-        nextId: 'core_01',
-        scores: { gravity: 2, judge: 1 },
+        mbti: { jp: -3 } },
+      { id: 'b', text: '有一定秩序，偶尔乱但我很快会收拾。',
+        scores: { gravity: 1 },
         mbti: { jp: -1 } },
+      { id: 'c', text: '看起来有点乱，但我能在乱麻里精准找到东西。',
+        scores: { chaos: 1 },
+        mbti: { jp: 1 } },
+      { id: 'd', text: '薛定谔的乱。攒够一段时间集中清理一次，然后迅速回归混沌。',
+        scores: { chaos: 1, absurdity: 1 },
+        mbti: { jp: 3 } },
     ]
   },
   {
-    id: 'mbti_jp_p',
-    prompt: '（P人特供）距离交接/考试死线（DDL）只剩最后两小时，你会：',
+    id: 'mbti_jp_2',
+    prompt: '（计划执行）出去旅行时，你更倾向于？',
     category: 'mbti',
     options: [
-      { id: 'a', text: '虽然极其焦虑，但手指就是控制不住想再刷两分钟短视频。',
-        nextId: 'core_01',
-        scores: { leak: 1, chaos: 1 },
-        mbti: { jp: 2 } },
-      { id: 'b', text: '肾上腺素飙升，以奇迹般的速度爆发完成了不可思议的工作量。',
-        nextId: 'core_01',
+      { id: 'a', text: '提前做详细攻略，精确到每天几点去哪个景点。',
+        scores: { gravity: 1, judge: 1 },
+        mbti: { jp: -3 } },
+      { id: 'b', text: '定好酒店和大方向，具体日程到了再灵活安排。',
+        scores: { mask: 1 },
+        mbti: { jp: -1 } },
+      { id: 'c', text: '只订机票和第一晚住宿，剩下的随缘走。',
+        scores: { chaos: 1 },
+        mbti: { jp: 1 } },
+      { id: 'd', text: '攻略是什么？走哪算哪，迷路了才是旅行！',
+        scores: { chaos: 1, absurdity: 1, speed: 1 },
+        mbti: { jp: 3 } },
+    ]
+  },
+  {
+    id: 'mbti_jp_3',
+    prompt: '（截止期限）距离考试/交接的死线（DDL）只剩最后两小时，你通常是？',
+    category: 'mbti',
+    options: [
+      { id: 'a', text: '不可能出现这种情况，我一周前就完成了。',
+        scores: { gravity: 2, judge: 1 },
+        mbti: { jp: -3 } },
+      { id: 'b', text: '还有两小时？够了，按计划收尾。',
+        scores: { gravity: 1 },
+        mbti: { jp: -1 } },
+      { id: 'c', text: '肾上腺素飙升，以奇迹般的速度爆发完成不可思议的工作量。',
         scores: { speed: 2, spark: 1 },
         mbti: { jp: 1 } },
+      { id: 'd', text: '虽然极其焦虑，但手指就是控制不住想再刷两分钟短视频。',
+        scores: { leak: 1, chaos: 1 },
+        mbti: { jp: 3 } },
     ]
   },
 
   // ================================================================
   // 第二幕：核心性格维度题（20题，每人必做，每题4选项）
+  // 约半数题目同时贡献隐性 MBTI 分数（交叉校验）
   // ================================================================
 
   {
@@ -212,13 +263,17 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '先吐槽两句，再顺手把新路线查好。',
-        scores: { spark: 2, filter: -1, speed: 1 } },
+        scores: { spark: 2, filter: -1, speed: 1 },
+        mbti: { jp: 1 } },
       { id: 'b', text: '嘴上说都行，心里已经记上一笔。',
-        scores: { mask: 2, spite: 2 } },
+        scores: { mask: 2, spite: 2 },
+        mbti: { jp: -1 } },
       { id: 'c', text: '改就改，顺便提议再玩点更离谱的。',
-        scores: { chaos: 2, absurdity: 1 } },
+        scores: { chaos: 2, absurdity: 1 },
+        mbti: { jp: 2 } },
       { id: 'd', text: '我先看看有没有必要出门。',
-        scores: { orbit: -1, filter: 2 } },
+        scores: { orbit: -1, filter: 2 },
+        mbti: { ei: -1 } },
     ]
   },
   {
@@ -227,13 +282,16 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '立刻接梗，把场子强行救回来。',
-        scores: { orbit: 2, spark: 1, chaos: 1 } },
+        scores: { orbit: 2, spark: 1, chaos: 1 },
+        mbti: { ei: 1 } },
       { id: 'b', text: '已读，但在心里默默扣分。',
-        scores: { judge: 2, mask: 1, spite: 1 } },
+        scores: { judge: 2, mask: 1, spite: 1 },
+        mbti: { tf: -1 } },
       { id: 'c', text: '补一刀更冷的，让现场彻底冻住。',
         scores: { venom: 2, absurdity: 1, chaos: 1 } },
       { id: 'd', text: '直接划走，不浪费情绪。',
-        scores: { filter: 2, orbit: -1 } },
+        scores: { filter: 2, orbit: -1 },
+        mbti: { ei: -1 } },
     ]
   },
   {
@@ -242,13 +300,16 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '你怎么什么都敢说。',
-        scores: { filter: -2, venom: 2, spark: 1 } },
+        scores: { filter: -2, venom: 2, spark: 1 },
+        mbti: { tf: -1 } },
       { id: 'b', text: '你是不是其实早就不爽了。',
         scores: { mask: 2, spite: 2 } },
       { id: 'c', text: '有你在就不会无聊。',
-        scores: { orbit: 2, chaos: 1, spark: 1 } },
+        scores: { orbit: 2, chaos: 1, spark: 1 },
+        mbti: { ei: 1 } },
       { id: 'd', text: '你能不能别突然消失。',
-        scores: { orbit: -2, filter: 1, bunker: 1 } },
+        scores: { orbit: -2, filter: 1, bunker: 1 },
+        mbti: { ei: -1 } },
     ]
   },
   {
@@ -257,13 +318,16 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '接手全场，顺便把规则都改了。',
-        scores: { gravity: 2, spark: 1, chaos: 1 } },
+        scores: { gravity: 2, spark: 1, chaos: 1 },
+        mbti: { ei: 1, jp: -1 } },
       { id: 'b', text: '表面推辞一下，最后还是开始控盘。',
         scores: { mask: 1, gravity: 2, trap: 1 } },
       { id: 'c', text: '把场子搞热，但未必按原计划来。',
-        scores: { chaos: 2, orbit: 1, absurdity: 1 } },
+        scores: { chaos: 2, orbit: 1, absurdity: 1 },
+        mbti: { jp: 1 } },
       { id: 'd', text: '我可以配合，但别把我推到正中间。',
-        scores: { filter: 2, bunker: 1 } },
+        scores: { filter: 2, bunker: 1 },
+        mbti: { ei: -1 } },
     ]
   },
   {
@@ -272,11 +336,13 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '先顶回去，气势上不能输。',
-        scores: { spark: 2, pride: 2, speed: 1 } },
+        scores: { spark: 2, pride: 2, speed: 1 },
+        mbti: { tf: -1 } },
       { id: 'b', text: '笑一下，回头再慢慢算。',
         scores: { mask: 1, spite: 2, trap: 1 } },
       { id: 'c', text: '顺势演得更不靠谱，让对方后悔开口。',
-        scores: { chaos: 2, absurdity: 2, venom: 1 } },
+        scores: { chaos: 2, absurdity: 2, venom: 1 },
+        mbti: { sn: 1 } },
       { id: 'd', text: '懒得证明，信不信随便。',
         scores: { filter: 2, bunker: 1, pride: -1 } },
     ]
@@ -287,11 +353,13 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '嘴上骂两句，手上已经开始重排。',
-        scores: { spark: 1, speed: 2, gravity: 1 } },
+        scores: { spark: 1, speed: 2, gravity: 1 },
+        mbti: { jp: -1 } },
       { id: 'b', text: '不说破，但会默默降低配合度。',
         scores: { spite: 2, mask: 2, trap: 1 } },
       { id: 'c', text: '既然都乱了，不如更彻底一点。',
-        scores: { chaos: 2, absurdity: 1, speed: 1 } },
+        scores: { chaos: 2, absurdity: 1, speed: 1 },
+        mbti: { jp: 1 } },
       { id: 'd', text: '那我先退后一步看戏。',
         scores: { filter: 1, bunker: 2, judge: 1 } },
     ]
@@ -302,13 +370,16 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '一句话直接让人记住我。',
-        scores: { venom: 2, spark: 1, filter: -1 } },
+        scores: { venom: 2, spark: 1, filter: -1 },
+        mbti: { ei: 1 } },
       { id: 'b', text: '气场不大，但别人会自然注意我。',
         scores: { gravity: 2, mask: 1 } },
       { id: 'c', text: '我会主动制造记忆点。',
-        scores: { chaos: 1, orbit: 2, absurdity: 1 } },
+        scores: { chaos: 1, orbit: 2, absurdity: 1 },
+        mbti: { ei: 1 } },
       { id: 'd', text: '我不一定抢眼，但我会看得很清楚。',
-        scores: { judge: 2, filter: 1, bunker: 1 } },
+        scores: { judge: 2, filter: 1, bunker: 1 },
+        mbti: { ei: -1 } },
     ]
   },
   {
@@ -317,11 +388,13 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '把话说开，吵完就过。',
-        scores: { spark: 1, filter: -1, speed: 1 } },
+        scores: { spark: 1, filter: -1, speed: 1 },
+        mbti: { tf: -1 } },
       { id: 'b', text: '对方先拿出诚意。',
         scores: { pride: 2, spite: 1, judge: 1 } },
       { id: 'c', text: '用玩笑和新节目把尴尬冲掉。',
-        scores: { chaos: 1, orbit: 2, absurdity: 1 } },
+        scores: { chaos: 1, orbit: 2, absurdity: 1 },
+        mbti: { tf: 1 } },
       { id: 'd', text: '时间够久，自然就淡了。',
         scores: { filter: 2, bunker: 1, orbit: -1 } },
     ]
@@ -332,7 +405,8 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '那就得罪得干净点。',
-        scores: { venom: 2, spark: 2, filter: -1 } },
+        scores: { venom: 2, spark: 2, filter: -1 },
+        mbti: { tf: -1 } },
       { id: 'b', text: '脸上不撕，行动上划线。',
         scores: { mask: 2, trap: 2, spite: 1 } },
       { id: 'c', text: '顺手把场面变成大型节目。',
@@ -347,13 +421,17 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '说话没重点还爱占时间。',
-        scores: { speed: 1, judge: 2, venom: 1 } },
+        scores: { speed: 1, judge: 2, venom: 1 },
+        mbti: { sn: -1 } },
       { id: 'b', text: '只会装无辜但从不负责。',
-        scores: { spite: 2, judge: 2 } },
+        scores: { spite: 2, judge: 2 },
+        mbti: { tf: -1 } },
       { id: 'c', text: '把气氛搞死还以为自己很稳。',
-        scores: { chaos: 1, orbit: 1, spark: 1 } },
+        scores: { chaos: 1, orbit: 1, spark: 1 },
+        mbti: { ei: 1 } },
       { id: 'd', text: '一天到晚都要在线陪聊。',
-        scores: { orbit: -2, bunker: 1, filter: 2 } },
+        scores: { orbit: -2, bunker: 1, filter: 2 },
+        mbti: { ei: -1 } },
     ]
   },
   {
@@ -362,11 +440,14 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '当下感觉对不对。',
-        scores: { speed: 2, spark: 1, leak: 1 } },
+        scores: { speed: 2, spark: 1, leak: 1 },
+        mbti: { tf: 1 } },
       { id: 'b', text: '长远后果和关系成本。',
-        scores: { trap: 2, gravity: 1, mask: 1 } },
+        scores: { trap: 2, gravity: 1, mask: 1 },
+        mbti: { sn: -1 } },
       { id: 'c', text: '有没有更有趣的做法。',
-        scores: { chaos: 2, absurdity: 2 } },
+        scores: { chaos: 2, absurdity: 2 },
+        mbti: { sn: 1 } },
       { id: 'd', text: '会不会打扰我自己的节奏。',
         scores: { filter: 2, bunker: 1, orbit: -1 } },
     ]
@@ -392,9 +473,11 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '直接提醒对方别丢人。',
-        scores: { venom: 1, spark: 1, filter: -1 } },
+        scores: { venom: 1, spark: 1, filter: -1 },
+        mbti: { tf: -1 } },
       { id: 'b', text: '不戳破，但会默默收尾。',
-        scores: { mask: 2, gravity: 1, trap: 1 } },
+        scores: { mask: 2, gravity: 1, trap: 1 },
+        mbti: { tf: 1 } },
       { id: 'c', text: '一边帮，一边顺手吐槽。',
         scores: { chaos: 1, venom: 1, orbit: 1 } },
       { id: 'd', text: '让对方自己先冷静，我再回来。',
@@ -407,11 +490,13 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '接管流程，至少别散架。',
-        scores: { gravity: 2, spark: 1, speed: 1 } },
+        scores: { gravity: 2, spark: 1, speed: 1 },
+        mbti: { jp: -1 } },
       { id: 'b', text: '选几个关键点补住就行。',
         scores: { mask: 1, trap: 1, gravity: 1 } },
       { id: 'c', text: '既然都烂了，不如烂得好看点。',
-        scores: { chaos: 2, absurdity: 2 } },
+        scores: { chaos: 2, absurdity: 2 },
+        mbti: { jp: 1 } },
       { id: 'd', text: '我先保住自己，不跟着一起炸。',
         scores: { bunker: 2, filter: 1 } },
     ]
@@ -441,7 +526,8 @@ export const questions = [
       { id: 'b', text: '平时不提，一提就是完整版。',
         scores: { spite: 2, trap: 1, mask: 1 } },
       { id: 'c', text: '看节目效果，时机对就翻。',
-        scores: { chaos: 1, trap: 1, absurdity: 1 } },
+        scores: { chaos: 1, trap: 1, absurdity: 1 },
+        mbti: { sn: 1 } },
       { id: 'd', text: '我一般不翻，顶多直接疏远。',
         scores: { bunker: 2, orbit: -1, filter: 1 } },
     ]
@@ -452,13 +538,16 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '立刻纠正，不想吃这个哑巴亏。',
-        scores: { spark: 2, pride: 1, speed: 1 } },
+        scores: { spark: 2, pride: 1, speed: 1 },
+        mbti: { ei: 1 } },
       { id: 'b', text: '看值不值得解释。',
-        scores: { gravity: 1, judge: 2, mask: 1 } },
+        scores: { gravity: 1, judge: 2, mask: 1 },
+        mbti: { tf: -1 } },
       { id: 'c', text: '顺势演得更夸张，让误解自己长大。',
         scores: { chaos: 2, absurdity: 2, venom: 1 } },
       { id: 'd', text: '我可以不被懂，但我得安静。',
-        scores: { bunker: 2, filter: 1, orbit: -1 } },
+        scores: { bunker: 2, filter: 1, orbit: -1 },
+        mbti: { ei: -1 } },
     ]
   },
   {
@@ -471,7 +560,8 @@ export const questions = [
       { id: 'b', text: '有人反复踩我底线的时候。',
         scores: { spite: 2, bunker: 1, spark: 1 } },
       { id: 'c', text: '场子快死了但没人救的时候。',
-        scores: { orbit: 2, chaos: 1, spark: 1 } },
+        scores: { orbit: 2, chaos: 1, spark: 1 },
+        mbti: { ei: 1 } },
       { id: 'd', text: '其实我大多时候选择不上头。',
         scores: { filter: 2, gravity: 1, mask: 1 } },
     ]
@@ -482,13 +572,16 @@ export const questions = [
     category: 'core',
     options: [
       { id: 'a', text: '电量靠输出获得。',
-        scores: { spark: 2, orbit: 1 } },
+        scores: { spark: 2, orbit: 1 },
+        mbti: { ei: 1 } },
       { id: 'b', text: '要看人，不是谁都配我在线。',
         scores: { judge: 2, spite: 1, pride: 1 } },
       { id: 'c', text: '越热闹越续航。',
-        scores: { orbit: 2, chaos: 1 } },
+        scores: { orbit: 2, chaos: 1 },
+        mbti: { ei: 2 } },
       { id: 'd', text: '独处才是原装充电器。',
-        scores: { orbit: -2, bunker: 1, filter: 1 } },
+        scores: { orbit: -2, bunker: 1, filter: 1 },
+        mbti: { ei: -2 } },
     ]
   },
   {
@@ -501,7 +594,8 @@ export const questions = [
       { id: 'b', text: '有分寸，而且心里有数。',
         scores: { mask: 2, trap: 1, gravity: 1 } },
       { id: 'c', text: '离谱，但有意思。',
-        scores: { chaos: 2, absurdity: 2 } },
+        scores: { chaos: 2, absurdity: 2 },
+        mbti: { sn: 1 } },
       { id: 'd', text: '不用常驻，但关键时刻在。',
         scores: { bunker: 1, filter: 1, orbit: -1 } },
     ]
@@ -839,7 +933,7 @@ export const questions = [
 ];
 
 // ============================================================
-// 题目路由引擎 v2.0
+// 题目路由引擎 v3.0
 // ============================================================
 
 export function getQuestionById(id) {
@@ -859,18 +953,10 @@ export function buildQuestionPath(answers) {
   const path = [];
   const currentScores = calculateIntermediateScores(answers);
 
-  // 阶段1：MBTI 先导题（按分支走）
-  let mbtiId = 'mbti_ei_1';
-  while (mbtiId) {
-    const q = getQuestionById(mbtiId);
-    if (!q) break;
-    path.push(mbtiId);
-    if (answers[mbtiId]) {
-      const option = q.options.find(o => o.id === answers[mbtiId]);
-      mbtiId = option?.nextId || null;
-    } else {
-      mbtiId = null; // 等待用户作答
-    }
+  // 阶段1：MBTI 先导题（v3.0: 全部顺序走，不再分支）
+  const mbtiQuestions = questions.filter(q => q.category === 'mbti');
+  for (const q of mbtiQuestions) {
+    path.push(q.id);
   }
 
   // 阶段2：核心题（按顺序走）
