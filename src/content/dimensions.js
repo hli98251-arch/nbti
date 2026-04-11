@@ -1,4 +1,43 @@
 export const dimensions = [
+  // ============================================================
+  // MBTI 四维度（一级分类用）
+  // ============================================================
+  {
+    id: 'ei',
+    name: '外内维度',
+    highLabel: '外向 (E)',
+    lowLabel: '内向 (I)',
+    description: '衡量你的能量是来自外部世界的互动，还是内心世界的独处。',
+    isMbti: true,
+  },
+  {
+    id: 'sn',
+    name: '感直维度',
+    highLabel: '直觉 (N)',
+    lowLabel: '实感 (S)',
+    description: '衡量你更关注眼前的细节事实，还是未来的可能性与模式。',
+    isMbti: true,
+  },
+  {
+    id: 'tf',
+    name: '思情维度',
+    highLabel: '情感 (F)',
+    lowLabel: '思考 (T)',
+    description: '衡量你做决定时更依赖逻辑分析，还是个人价值和情感。',
+    isMbti: true,
+  },
+  {
+    id: 'jp',
+    name: '判知维度',
+    highLabel: '感知 (P)',
+    lowLabel: '判断 (J)',
+    description: '衡量你是喜欢有计划有条理，还是偏好灵活应变随遇而安。',
+    isMbti: true,
+  },
+
+  // ============================================================
+  // 15 性格维度（二级微调用）
+  // ============================================================
   {
     id: 'spark',
     name: '起火值',
@@ -105,3 +144,12 @@ export const dimensions = [
     description: '衡量你到底是嘴巴严还是移动的情报站。',
   },
 ];
+
+// 便利函数
+export function getMbtiDimensions() {
+  return dimensions.filter(d => d.isMbti);
+}
+
+export function getPersonalityDimensions() {
+  return dimensions.filter(d => !d.isMbti);
+}

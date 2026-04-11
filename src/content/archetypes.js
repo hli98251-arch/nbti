@@ -1,3 +1,9 @@
+// ============================================================
+// NBTI 16 人格原型 v2.0
+// 新增 mbtiAffinity: 每个人格与哪些 MBTI 类型有亲和关系
+// 算法会优先在亲和的 MBTI 类型中匹配，大幅提高分布均匀性
+// ============================================================
+
 export const archetypes = [
   {
     id: 'late-bomb',
@@ -9,6 +15,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你嘴上说算了，多半只是先去攒证据。',
     shareSnippet: '我是 NBTI 的延迟爆破者，表面放过，内心立案。',
     dimensionBias: ['spite', 'filter'],
+    mbtiAffinity: ['ISTJ', 'INTJ', 'ISFJ'],
   },
   {
     id: 'room-freezer',
@@ -20,6 +27,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是凶，你只是有一种让人自动反思的平静。',
     shareSnippet: '我是 NBTI 的气氛冷冻机，不张嘴也能让场面降温。',
     dimensionBias: ['gravity', 'mask'],
+    mbtiAffinity: ['INTJ', 'ISTJ', 'ENTJ'],
   },
   {
     id: 'chaos-host',
@@ -31,6 +39,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是不成熟，你只是拒绝让场子死掉。',
     shareSnippet: '我是 NBTI 的整活主持人，安静对我来说像工伤。',
     dimensionBias: ['chaos', 'orbit'],
+    mbtiAffinity: ['ENFP', 'ENTP', 'ESFP'],
   },
   {
     id: 'mercy-manager',
@@ -42,6 +51,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你很少翻脸，不代表你真的没记账。',
     shareSnippet: '我是 NBTI 的仁慈经理人，嘴上和气，心里绩效。',
     dimensionBias: ['mask', 'spite'],
+    mbtiAffinity: ['ENFJ', 'INFJ', 'ESFJ'],
   },
   {
     id: 'wild-mic',
@@ -53,6 +63,9 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是故意伤人，你只是比后悔先开口。',
     shareSnippet: '我是 NBTI 的失控麦克风，嘴永远跑在补救前面。',
     dimensionBias: ['filter', 'spark'],
+    // filter 在这里代表低filter（选了filter:-1 的选项）
+    // 实际匹配会用 negFilter 逻辑
+    mbtiAffinity: ['ESTP', 'ENTP', 'ESFP'],
   },
   {
     id: 'soft-tyrant',
@@ -63,7 +76,8 @@ export const archetypes = [
     friendshipWarning: '朋友会觉得是自己做的决定，其实大多是你铺好的轨道。',
     selfAwareDisclaimer: '你不爱硬压，你更爱让别人自己走向你的结论。',
     shareSnippet: '我是 NBTI 的温柔独裁者，不吵不闹但方向归我。',
-    dimensionBias: ['gravity', 'mask'],
+    dimensionBias: ['gravity', 'trap'],
+    mbtiAffinity: ['INFJ', 'ENFJ', 'INTJ'],
   },
   {
     id: 'public-candle',
@@ -75,6 +89,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你没有恶意，你只是有点太会带节奏。',
     shareSnippet: '我是 NBTI 的人群蜡烛芯，场子不亮我就想点火。',
     dimensionBias: ['orbit', 'spark'],
+    mbtiAffinity: ['ENFP', 'ESFP', 'ENFJ'],
   },
   {
     id: 'petty-archivist',
@@ -86,6 +101,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是坏，你只是记忆力带点情绪保鲜功能。',
     shareSnippet: '我是 NBTI 的小心眼档案员，不记仇，我只是记得细。',
     dimensionBias: ['spite', 'gravity'],
+    mbtiAffinity: ['ISTJ', 'ISFJ', 'ESTJ'],
   },
   {
     id: 'absurd-engine',
@@ -97,6 +113,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是乱来，你只是相信生活需要一点失真。',
     shareSnippet: '我是 NBTI 的荒谬发动机，现实到我这儿都会拐个弯。',
     dimensionBias: ['absurdity', 'chaos'],
+    mbtiAffinity: ['ENTP', 'ENFP', 'INTP'],
   },
   {
     id: 'silent-auditor',
@@ -107,7 +124,8 @@ export const archetypes = [
     friendshipWarning: '朋友通常不知道自己什么时候已经进入你的评估期。',
     selfAwareDisclaimer: '你安静不代表你放空，很多时候你只是在记录。',
     shareSnippet: '我是 NBTI 的静音审计员，话少，但观察从不缺席。',
-    dimensionBias: ['mask', 'gravity'],
+    dimensionBias: ['judge', 'mask'],
+    mbtiAffinity: ['INFJ', 'INTP', 'ISTP'],
   },
   {
     id: 'kind-chaos',
@@ -119,6 +137,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是添乱，你只是热心和失控常常同框。',
     shareSnippet: '我是 NBTI 的善意搅局人，帮忙这件事我做得很有节目性。',
     dimensionBias: ['chaos', 'spark'],
+    mbtiAffinity: ['ESFJ', 'ENFP', 'ESFP'],
   },
   {
     id: 'solo-satellite',
@@ -129,7 +148,8 @@ export const archetypes = [
     friendshipWarning: '朋友需要知道，你消失一下多半不是生气，是续航。',
     selfAwareDisclaimer: '你不是冷漠，你只是对高频社交没有长期订阅欲。',
     shareSnippet: '我是 NBTI 的单飞卫星，会回来，但先让我离群一会儿。',
-    dimensionBias: ['orbit', 'filter'],
+    dimensionBias: ['filter', 'bunker'],
+    mbtiAffinity: ['INTP', 'ISTP', 'INFP'],
   },
   {
     id: 'venom-tongue',
@@ -141,6 +161,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是在伤害，你只是在锻炼别人的心脏。',
     shareSnippet: '我是 NBTI 的毒舌刺客，开口就是暴击。',
     dimensionBias: ['venom', 'pride'],
+    mbtiAffinity: ['ESTJ', 'ENTJ', 'ESTP'],
   },
   {
     id: 'iron-turtle',
@@ -152,6 +173,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你是谨慎，不是怂，只是子弹上膛比较慢。',
     shareSnippet: '我是 NBTI 的铁甲乌龟，壳有多厚你自己知道。',
     dimensionBias: ['bunker', 'judge'],
+    mbtiAffinity: ['ISFJ', 'ISTJ', 'ISFP'],
   },
   {
     id: 'speed-demon',
@@ -163,6 +185,7 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是冲动，你只是觉得想清楚的时间成本太贵。',
     shareSnippet: '我是 NBTI 的上头怪咖，先干再说的典型代表。',
     dimensionBias: ['speed', 'chaos'],
+    mbtiAffinity: ['ESTP', 'ENTP', 'ISTP'],
   },
   {
     id: 'trap-weaver',
@@ -174,5 +197,6 @@ export const archetypes = [
     selfAwareDisclaimer: '你不是在套路，你只是在测试对方的智商。',
     shareSnippet: '我是 NBTI 的陷阱织女，说话和下棋一样。',
     dimensionBias: ['trap', 'mask'],
+    mbtiAffinity: ['INFP', 'INFJ', 'INTJ'],
   },
 ];

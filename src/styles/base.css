@@ -208,6 +208,62 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* MBTI Type Card */
+.mbti-card {
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  text-align: center;
+}
+
+.mbti-card h3 {
+  margin: 0 0 12px;
+  color: var(--accent-strong);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.mbti-type-display {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+
+.mbti-breakdown {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mbti-letter {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.05));
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: var(--accent-strong);
+}
+
+.mbti-letter small {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
 /* Dimension Breakdown */
 .dimensions-section {
   margin-top: 32px;

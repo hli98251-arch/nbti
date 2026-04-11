@@ -1,107 +1,159 @@
+// ============================================================
+// NBTI 计分引擎 v2.0
+// 两阶段人格匹配：MBTI一级分类 + 维度二级微调
+// ============================================================
+
 import { archetypes } from '../content/archetypes.js';
-import { dimensions } from '../content/dimensions.js';
+import { dimensions, getPersonalityDimensions } from '../content/dimensions.js';
+import { getQuestionById } from '../content/questions.js';
 
-const EXPECTED_ANSWER_COUNT = 31;
-
-const OPTION_DIMENSION_MAP = {
-  a: ['spark', 'gravity', 'venom', 'leak'],
-  b: ['mask', 'spite', 'bunker', 'judge'],
-  c: ['chaos', 'absurdity', 'speed', 'pride'],
-  d: ['orbit', 'filter', 'trap', 'leak']
-};
-
-function createEmptyDimensionScores() {
-  return dimensions.reduce((accumulator, dimension) => {
-    accumulator[dimension.id] = 0;
-    return accumulator;
-  }, {});
-}
+// ============================================================
+// 阶段一：按题目选项的独立标注计分
+// ============================================================
 
 function scoreAnswers(answers) {
-  const scores = createEmptyDimensionScores();
+  const personalityScores = {};
+  const mbtiScores = { ei: 0, sn: 0, tf: 0, jp: 0 };
 
-  Object.entries(answers).forEach(([, optionId]) => {
-    const mappedDimensions = OPTION_DIMENSION_MAP[optionId];
+  // 初始化所有维度为 0
+  for (const dim of dimensions) {
+    if (!dim.isMbti) {
+      personalityScores[dim.id] = 0;
+    }
+  }
 
-    if (!mappedDimensions) {
-      return;
+  for (const [questionId, optionId] of Object.entries(answers)) {
+    const question = getQuestionById(questionId);
+    if (!question) continue;
+
+    const option = question.options.find(o => o.id === optionId);
+    if (!option) continue;
+
+    // 累加性格维度分
+    if (option.scores) {
+      for (const [dimId, weight] of Object.entries(option.scores)) {
+        if (dimId in personalityScores) {
+          personalityScores[dimId] += weight;
+        }
+      }
     }
 
-    mappedDimensions.forEach((dimensionId) => {
-      scores[dimensionId] += 1;
-    });
-  });
+    // 累加 MBTI 维度分
+    if (option.mbti) {
+      for (const [dimId, weight] of Object.entries(option.mbti)) {
+        if (dimId in mbtiScores) {
+          mbtiScores[dimId] += weight;
+        }
+      }
+    }
+  }
 
-  return scores;
+  return { personalityScores, mbtiScores };
 }
 
-function buildArchetypeCandidate(archetype, dimensionScores) {
+// ============================================================
+// 阶段二：确定 MBTI 类型
+// ============================================================
+
+function determineMbtiType(mbtiScores) {
+  const e_or_i = mbtiScores.ei >= 0 ? 'E' : 'I';
+  const s_or_n = mbtiScores.sn >= 0 ? 'N' : 'S';
+  const t_or_f = mbtiScores.tf >= 0 ? 'F' : 'T';
+  const j_or_p = mbtiScores.jp >= 0 ? 'P' : 'J';
+  return `${e_or_i}${s_or_n}${t_or_f}${j_or_p}`;
+}
+
+// ============================================================
+// 阶段三：两阶段人格匹配
+// ============================================================
+
+function buildArchetypeCandidate(archetype, personalityScores, mbtiType) {
   const [primaryBias, secondaryBias] = archetype.dimensionBias;
-  const primaryScore = dimensionScores[primaryBias] ?? 0;
-  const secondaryScore = dimensionScores[secondaryBias] ?? 0;
+  const primaryScore = personalityScores[primaryBias] ?? 0;
+  const secondaryScore = personalityScores[secondaryBias] ?? 0;
+
+  // MBTI 亲和度加成：如果用户的 MBTI 类型在该人格的亲和列表中
+  let mbtiBonus = 0;
+  if (archetype.mbtiAffinity && archetype.mbtiAffinity.includes(mbtiType)) {
+    mbtiBonus = 3; // 显著但不压倒性的加成
+  }
 
   return {
     archetype,
-    total: primaryScore + secondaryScore,
+    dimensionTotal: primaryScore + secondaryScore,
+    total: primaryScore + secondaryScore + mbtiBonus,
     primaryScore,
-    secondaryScore
+    secondaryScore,
+    mbtiBonus,
   };
 }
 
-function selectArchetype(dimensionScores) {
-  const candidates = archetypes.map((archetype) => buildArchetypeCandidate(archetype, dimensionScores));
+function selectArchetype(personalityScores, mbtiType) {
+  const candidates = archetypes.map(archetype =>
+    buildArchetypeCandidate(archetype, personalityScores, mbtiType)
+  );
 
-  candidates.sort((left, right) => {
-    if (right.total !== left.total) {
-      return right.total - left.total;
-    }
-
-    if (right.primaryScore !== left.primaryScore) {
-      return right.primaryScore - left.primaryScore;
-    }
-
-    if (right.secondaryScore !== left.secondaryScore) {
-      return right.secondaryScore - left.secondaryScore;
-    }
-
-    return left.archetype.id.localeCompare(right.archetype.id);
+  // 排序策略：
+  // 1. total（含 MBTI 加成）降序
+  // 2. dimensionTotal（纯维度分）降序
+  // 3. primaryScore 降序
+  // 4. 字母序兜底
+  candidates.sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    if (b.dimensionTotal !== a.dimensionTotal) return b.dimensionTotal - a.dimensionTotal;
+    if (b.primaryScore !== a.primaryScore) return b.primaryScore - a.primaryScore;
+    return a.archetype.id.localeCompare(b.archetype.id);
   });
 
   return {
     top: candidates[0],
-    second: candidates[1] ?? candidates[0]
+    second: candidates[1] ?? candidates[0],
+    allCandidates: candidates,
   };
 }
 
+// ============================================================
+// 置信度与维度面板
+// ============================================================
+
 function buildConfidence(topScore, secondScore) {
   const spread = Math.max(0, topScore - secondScore);
-  const value = Math.min(99, 72 + spread * 4);
+  const value = Math.min(99, 68 + spread * 3);
   return `${value}%`;
 }
 
-function validateCompleteAnswers(answers) {
-  const answeredCount = Object.keys(answers).length;
-  return answeredCount === EXPECTED_ANSWER_COUNT;
-}
-
-function buildDimensionBreakdown(dimensionScores) {
-  return dimensions.map((dimension) => ({
+function buildDimensionBreakdown(personalityScores) {
+  const personalityDims = getPersonalityDimensions();
+  return personalityDims.map(dimension => ({
     id: dimension.id,
     name: dimension.name,
-    score: dimensionScores[dimension.id] ?? 0,
+    score: personalityScores[dimension.id] ?? 0,
     highLabel: dimension.highLabel,
-    lowLabel: dimension.lowLabel
+    lowLabel: dimension.lowLabel,
   }));
 }
 
+function buildMbtiBreakdown(mbtiScores) {
+  return {
+    ei: mbtiScores.ei,
+    sn: mbtiScores.sn,
+    tf: mbtiScores.tf,
+    jp: mbtiScores.jp,
+  };
+}
+
+// ============================================================
+// 主入口
+// ============================================================
+
 export function buildResultFromAnswers(answers) {
-  // Validate that SOME answers exist, but relax strict count due to branching
   if (Object.keys(answers).length < 10) {
-    throw new Error('Please complete the test (at least 10 answers required).');
+    throw new Error('请完成至少10道题再提交。');
   }
 
-  const dimensionScores = scoreAnswers(answers);
-  const selected = selectArchetype(dimensionScores);
+  const { personalityScores, mbtiScores } = scoreAnswers(answers);
+  const mbtiType = determineMbtiType(mbtiScores);
+  const selected = selectArchetype(personalityScores, mbtiType);
   const confidence = buildConfidence(selected.top.total, selected.second.total);
 
   return {
@@ -109,13 +161,14 @@ export function buildResultFromAnswers(answers) {
     title: selected.top.archetype.title,
     hook: selected.top.archetype.hook,
     confidence,
+    mbtiType,
+    mbtiScores: buildMbtiBreakdown(mbtiScores),
     systemRemark: selected.top.archetype.systemRemark,
     friendshipWarning: selected.top.archetype.friendshipWarning,
     selfAwareDisclaimer: selected.top.archetype.selfAwareDisclaimer,
     shareSnippet: selected.top.archetype.shareSnippet,
-    dimensions: buildDimensionBreakdown(dimensionScores),
+    dimensions: buildDimensionBreakdown(personalityScores),
     totalAnswers: Object.keys(answers).length,
-    summary: `${selected.top.archetype.systemRemark} 当前分维结果已生成，可直接分享。`
+    summary: `你的 MBTI 倾向为 ${mbtiType}，核心人格标签 ${selected.top.archetype.code}。当前分维结果已生成，可直接分享。`,
   };
 }
-
